@@ -1,11 +1,14 @@
-import { Box, Button, Flex, Input, Text } from "@chakra-ui/react";
+import { Box, Button, Flex, Input, Radio, RadioGroup, Stack, Text } from "@chakra-ui/react";
 import { getZapSplits } from "applesauce-core/helpers";
 import { NostrEvent } from "nostr-tools";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 
 import { humanReadableSats } from "../../helpers/lightning";
+import { getArkadeAddressFromProfile, getLightningAddressFromProfile } from "../../helpers/nostr/profile";
 import useAppSettings from "../../hooks/use-user-app-settings";
 import useUserLNURLMetadata from "../../hooks/use-user-lnurl-metadata";
+import useUserProfile from "../../hooks/use-user-profile";
 import { EmbedEventCard } from "../embed-event/card";
 import { LightningIcon } from "../icons";
 import UserAvatar from "../user/user-avatar";
@@ -38,7 +41,7 @@ export type InputStepProps = {
   initialAmount?: number;
   allowComment?: boolean;
   showEmbed?: boolean;
-  onSubmit: (values: { amount: number; comment: string }) => void;
+  onSubmit: (values: { amount: number; comment: string; paymentType: "lightning" | "arkade" }) => void;
 };
 
 export default function InputStep({
@@ -51,6 +54,7 @@ export default function InputStep({
   onSubmit,
 }: InputStepProps) {
   const { customZapAmounts } = useAppSettings();
+  const userProfile = useUserProfile(pubkey);
 
   const {
     register,
@@ -69,15 +73,29 @@ export default function InputStep({
     },
   });
 
+  // Check available payment methods
+  const lightningAddress = getLightningAddressFromProfile(userProfile);
+  const arkadeAddress = getArkadeAddressFromProfile(userProfile);
+  const hasLightning = !!lightningAddress;
+  const hasArkade = !!arkadeAddress;
+  const hasBoth = hasLightning && hasArkade;
+
+  // Default to Lightning if available, otherwise Arkade
+  const [paymentType, setPaymentType] = useState<"lightning" | "arkade">(hasLightning ? "lightning" : "arkade");
+
   const splits = event ? (getZapSplits(event) ?? []) : [];
 
   const { metadata: lnurlMetadata } = useUserLNURLMetadata(pubkey);
-  const canZap = lnurlMetadata?.allowsNostr && lnurlMetadata?.nostrPubkey;
+  const canZapLightning = lnurlMetadata?.allowsNostr && lnurlMetadata?.nostrPubkey;
+  const canZapArkade = hasArkade;
 
-  const showComment = allowComment && (splits.length > 0 || canZap || lnurlMetadata?.commentAllowed);
-  const actionName = canZap ? "Zap" : "Tip";
+  // User can zap if they have the selected payment method
+  const canZap = paymentType === "arkade" ? canZapArkade : canZapLightning;
 
-  const onSubmitZap = handleSubmit(onSubmit);
+  const showComment = allowComment && (splits.length > 0 || canZapLightning || canZapArkade || lnurlMetadata?.commentAllowed);
+  const actionName = paymentType === "arkade" ? "Arkade Zap" : canZapLightning ? "Zap" : "Tip";
+
+  const onSubmitZap = handleSubmit((values) => onSubmit({ ...values, paymentType }));
 
   return (
     <form onSubmit={onSubmitZap}>
@@ -87,6 +105,15 @@ export default function InputStep({
         ))}
 
         {showEmbed && event && <EmbedEventCard event={event} />}
+
+        {hasBoth && (
+          <RadioGroup value={paymentType} onChange={(value) => setPaymentType(value as "lightning" | "arkade")}>
+            <Stack direction="row" gap="4">
+              <Radio value="lightning">Lightning</Radio>
+              <Radio value="arkade">Arkade</Radio>
+            </Stack>
+          </RadioGroup>
+        )}
 
         {showComment && (
           <Input

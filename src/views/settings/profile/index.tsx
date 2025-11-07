@@ -19,8 +19,9 @@ import localSettings from "../../../services/preferences";
 import ProfileEditForm from "./components/profile-edit-form";
 import ProfilePreview from "./components/profile-preview";
 import { eventStore } from "../../../services/event-store";
+import { ExtendedProfileContent } from "../../../helpers/nostr/profile";
 
-export type ProfileFormData = Omit<ProfileContent, "picture" | "banner"> & {
+export type ProfileFormData = Omit<ExtendedProfileContent, "picture" | "banner"> & {
   picture?: string | File;
   banner?: string | File;
 };
@@ -105,6 +106,11 @@ export default function ProfileSettingsView() {
             newMetadata.lud16 = update.lud16;
             delete newMetadata.lud06;
           }
+        }
+
+        // Handle Arkade address
+        if (update.arkade !== undefined) {
+          (newMetadata as any).arkade = update.arkade;
         }
 
         setUploadStatus("Signing and publishing...");

@@ -5,10 +5,10 @@ import { useEventFactory } from "applesauce-react/hooks";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import SimpleView from "~/components/layout/presets/simple-view";
-import useUploadFile from "~/hooks/use-upload-file";
-import { usePublishEvent } from "~/providers/global/publish-provider";
-import { getSharableEventAddress } from "~/services/relay-hints";
+import SimpleView from "../../../components/layout/presets/simple-view";
+import useUploadFile from "../../../hooks/use-upload-file";
+import { usePublishEvent } from "../../../providers/global/publish-provider";
+import { getSharableEventAddress } from "../../../services/relay-hints";
 import PicturePostForm, { FormValues } from "./picture-post-form";
 
 export default function NewPictureView() {

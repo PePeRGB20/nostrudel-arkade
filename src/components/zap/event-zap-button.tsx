@@ -4,7 +4,9 @@ import { useActiveAccount } from "applesauce-react/hooks";
 
 import { humanReadableSats } from "../../helpers/lightning";
 import { totalZaps } from "../../helpers/nostr/zaps";
+import { getArkadeAddressFromProfile } from "../../helpers/nostr/profile";
 import useEventZaps from "../../hooks/use-event-zaps";
+import useUserProfile from "../../hooks/use-user-profile";
 import { NostrEvent } from "nostr-tools";
 import { LightningIcon } from "../icons";
 import ZapModal from "../event-zap-modal";
@@ -21,6 +23,7 @@ export type NoteZapButtonProps = Omit<ButtonProps, "children"> & {
 export default function EventZapButton({ event, allowComment, showEventPreview, ...props }: NoteZapButtonProps) {
   const account = useActiveAccount();
   const { metadata } = useUserLNURLMetadata(event.pubkey);
+  const userProfile = useUserProfile(event.pubkey);
   const zaps = useEventZaps(event) ?? [];
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -33,7 +36,8 @@ export default function EventZapButton({ event, allowComment, showEventPreview, 
   };
 
   const total = totalZaps(zaps);
-  const canZap = !!metadata?.allowsNostr || event.tags.some((t) => t[0] === "zap");
+  const arkadeAddress = getArkadeAddressFromProfile(userProfile);
+  const canZap = !!metadata?.allowsNostr || !!arkadeAddress || event.tags.some((t) => t[0] === "zap");
 
   return (
     <>

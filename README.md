@@ -2,7 +2,32 @@
   <img src="screenshots/icon.svg" alt="Project Logo" width="21%">
 </p>
 
-# noStrudel
+# Nostrudel Arkade Edition ⚡
+
+> **A fork of [noStrudel](https://github.com/hzrd149/nostrudel) with native Arkade Zaps support**
+
+This version adds support for the **Arkade protocol** alongside Lightning Network, allowing you to send and receive zaps using both Lightning addresses and Arkade addresses (`ark1...`).
+
+## ✨ What's New in Arkade Edition
+
+- ✅ **Dual Payment Support**: Lightning Network + Arkade Protocol
+- ✅ **Smart Selection**: Choose between Lightning and Arkade when both are available
+- ✅ **Profile Configuration**: Add your Arkade address in Settings → Profile
+- ✅ **NWC Integration**: Works with Arkade-enabled NWC wallets
+- ✅ **100% Backwards Compatible**: All original Nostrudel features work as before
+
+## 🚀 Quick Start
+
+1. **Install**: Visit the PWA or run locally
+2. **Add Arkade Address**: Settings → Profile → Arkade Address (`ark1...`)
+3. **Connect NWC Wallet**: Settings → Lightning (for sending zaps)
+4. **Zap Away**: Click zap button, choose Lightning or Arkade!
+
+📖 **[Full Documentation](./ARKADE_ZAPS_IMPLEMENTATION.md)** | 🚀 **[Deployment Guide](./DEPLOYMENT_GUIDE.md)**
+
+---
+
+# Original noStrudel
 
 > NOTE: This client is still in development and will have bugs
 
@@ -10,7 +35,8 @@ noStrudel is a web app for exploring the [nostr](https://github.com/nostr-protoc
 
 The goal of this project is to build a nostr client that lets a user explore the nostr protocol by showing as much information as possible and letting the user view the underlying events.
 
-Live Instance: [nostrudel.ninja](https://nostrudel.ninja)
+**Original Instance**: [nostrudel.ninja](https://nostrudel.ninja)
+**Arkade Edition**: [Update with your deployed URL]
 
 There are many features missing from this client and I wont get around to implementing everything. but if you like the client you are welcome to use it.
 

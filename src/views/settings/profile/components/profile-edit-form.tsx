@@ -58,6 +58,18 @@ const validateLightningAddress = async (value?: string) => {
   }
 };
 
+const validateArkadeAddress = (value?: string) => {
+  if (!value) return true;
+  if (!value.startsWith("ark1")) {
+    return "Arkade address must start with 'ark1'";
+  }
+  // Basic length validation (Arkade addresses should be reasonably long)
+  if (value.length < 20) {
+    return "Arkade address appears too short";
+  }
+  return true;
+};
+
 const validateNip05 = async (address?: string, userPubkey?: string) => {
   if (!address) return true;
   if (!address.includes("@")) return "Invalid address";
@@ -243,6 +255,18 @@ export default function ProfileEditForm({
           />
           <FormHelperText>Your Lightning address for receiving zaps.</FormHelperText>
           <FormErrorMessage>{errors.lud16?.message}</FormErrorMessage>
+        </FormControl>
+
+        <FormControl isInvalid={!!errors.arkade}>
+          <FormLabel>Arkade Address</FormLabel>
+          <Input
+            placeholder="ark1q..."
+            {...register("arkade", {
+              validate: validateArkadeAddress,
+            })}
+          />
+          <FormHelperText>Your Arkade address for receiving Arkade zaps.</FormHelperText>
+          <FormErrorMessage>{errors.arkade?.message}</FormErrorMessage>
         </FormControl>
 
         <FormControl isInvalid={!!errors.nip05}>

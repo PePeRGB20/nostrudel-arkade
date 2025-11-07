@@ -2,16 +2,18 @@ import { IconButton, IconButtonProps, useDisclosure } from "@chakra-ui/react";
 import useUserProfile from "../../../hooks/use-user-profile";
 import { LightningIcon } from "../../../components/icons";
 import ZapModal from "../../../components/event-zap-modal";
+import { getArkadeAddressFromProfile, getLightningAddressFromProfile } from "../../../helpers/nostr/profile";
 
 export default function UserZapButton({ pubkey, ...props }: { pubkey: string } & Omit<IconButtonProps, "aria-label">) {
   const metadata = useUserProfile(pubkey);
   const { isOpen, onOpen, onClose } = useDisclosure();
   if (!metadata) return null;
 
-  // use lud06 and lud16 fields interchangeably
-  const tipAddress = metadata.lud06 || metadata.lud16;
+  // Check if user has Lightning or Arkade address
+  const lightningAddress = getLightningAddressFromProfile(metadata);
+  const arkadeAddress = getArkadeAddressFromProfile(metadata);
 
-  if (!tipAddress) return null;
+  if (!lightningAddress && !arkadeAddress) return null;
 
   return (
     <>

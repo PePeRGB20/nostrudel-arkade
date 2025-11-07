@@ -3,9 +3,9 @@ import { useActiveAccount } from "applesauce-react/hooks";
 
 import { EventTemplate } from "nostr-tools";
 import { useCallback } from "react";
-import { stripSensitiveMetadataOnFile } from "~/helpers/image";
-import { simpleMultiServerUpload } from "~/helpers/media-upload/blossom";
-import { nostrBuildUploadImage } from "~/helpers/media-upload/nostr-build";
+import { stripSensitiveMetadataOnFile } from "../helpers/image";
+import { simpleMultiServerUpload } from "../helpers/media-upload/blossom";
+import { nostrBuildUploadImage } from "../helpers/media-upload/nostr-build";
 import useAsyncAction from "./use-async-action";
 import useAppSettings from "./use-user-app-settings";
 import useUsersMediaServers from "./use-user-blossom-servers";

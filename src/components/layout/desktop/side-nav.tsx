@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ButtonGroup, Flex, FlexProps, IconButton } from "@chakra-ui/react";
+import { Badge, ButtonGroup, Flex, FlexProps, IconButton, Text } from "@chakra-ui/react";
 
 import { ChevronLeftIcon, ChevronRightIcon } from "../../icons";
 import NavItems from "../components";
@@ -42,6 +42,16 @@ export default function DesktopSideNav({ ...props }: Omit<FlexProps, "children">
         {...props}
       >
         <AccountSwitcher />
+        {!collapsed && (
+          <Flex direction="column" align="center" py="2" gap="1">
+            <Text fontSize="sm" fontWeight="bold" color="purple.400">
+              Arkade Edition
+            </Text>
+            <Badge colorScheme="purple" fontSize="xs">
+              ⚡ Lightning & Arkade Zaps
+            </Badge>
+          </Flex>
+        )}
         <NavItems />
         <ButtonGroup variant="ghost" role="group" aria-label="Navigation controls">
           <IconButton

@@ -4,6 +4,11 @@ import { ProfileContent } from "applesauce-core/helpers";
 
 import { truncatedId } from "./event";
 
+// Extended profile content with Arkade support
+export type ExtendedProfileContent = ProfileContent & {
+  arkade?: string;
+};
+
 export function getSearchNames(profile: ProfileContent) {
   if (!profile) return [];
 
@@ -20,4 +25,18 @@ export function getDisplayName(metadata: ProfileContent | undefined, pubkey: str
   }
 
   return truncatedId(nip19.npubEncode(pubkey));
+}
+
+/** Extract Lightning address from user profile (lud16 or lud06) */
+export function getLightningAddressFromProfile(profile: ProfileContent | undefined): string | undefined {
+  return profile?.lud16 || profile?.lud06;
+}
+
+/** Extract Arkade address from user profile (must start with ark1) */
+export function getArkadeAddressFromProfile(profile: ProfileContent | undefined): string | undefined {
+  const arkade = (profile as ExtendedProfileContent)?.arkade;
+  if (arkade && typeof arkade === "string" && arkade.startsWith("ark1")) {
+    return arkade;
+  }
+  return undefined;
 }

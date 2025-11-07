@@ -13,6 +13,7 @@ import { kinds } from "nostr-tools";
 import { useMemo } from "react";
 
 import { humanReadableSats } from "../../../helpers/lightning";
+import { getUnifiedZapPayment } from "../../../helpers/nostr/zaps";
 import { LightningIcon } from "../../icons";
 import TextNoteContents from "../../timeline/note/text-note-contents";
 import Timestamp from "../../timestamp";
@@ -27,7 +28,7 @@ export default function EmbeddedZapRecept({
 }: Omit<CardProps, "children"> & { zap: KnownEvent<kinds.Zap> }) {
   const sender = getZapSender(zap);
   const recipient = getZapRecipient(zap);
-  const payment = getZapPayment(zap);
+  const payment = getZapPayment(zap) || getUnifiedZapPayment(zap);
   const request = getZapRequest(zap);
   if (!recipient || !payment) return null;
 

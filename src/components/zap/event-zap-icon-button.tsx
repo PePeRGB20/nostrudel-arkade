@@ -3,6 +3,8 @@ import { NostrEvent } from "nostr-tools";
 
 import { useReadRelays } from "../../hooks/use-client-relays";
 import useUserLNURLMetadata from "../../hooks/use-user-lnurl-metadata";
+import useUserProfile from "../../hooks/use-user-profile";
+import { getArkadeAddressFromProfile } from "../../helpers/nostr/profile";
 import { zapsLoader } from "../../services/loaders";
 import ZapModal from "../event-zap-modal";
 import { LightningIcon } from "../icons";
@@ -12,6 +14,7 @@ export default function EventZapIconButton({
   ...props
 }: { event: NostrEvent } & Omit<IconButtonProps, "icon" | "onClick">) {
   const { metadata } = useUserLNURLMetadata(event.pubkey);
+  const userProfile = useUserProfile(event.pubkey);
   const { isOpen, onOpen, onClose } = useDisclosure();
 
   const readRelays = useReadRelays();
@@ -20,7 +23,8 @@ export default function EventZapIconButton({
     zapsLoader(event, readRelays).subscribe();
   };
 
-  const canZap = !!metadata?.allowsNostr || event.tags.some((t) => t[0] === "zap");
+  const arkadeAddress = getArkadeAddressFromProfile(userProfile);
+  const canZap = !!metadata?.allowsNostr || !!arkadeAddress || event.tags.some((t) => t[0] === "zap");
 
   return (
     <>

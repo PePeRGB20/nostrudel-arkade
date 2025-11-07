@@ -30,8 +30,17 @@ import relayScoreboardService from "../../services/relay-scoreboard";
 import UserLink from "../user/user-link";
 import InputStep from "./input-step";
 import PayStep from "./pay-step";
+import { getArkadeAddressFromProfile } from "../../helpers/nostr/profile";
 
-export type PayRequest = { invoice?: string; pubkey: string; error?: any };
+export type PayRequest = {
+  invoice?: string;
+  pubkey: string;
+  error?: any;
+  // Arkade-specific fields
+  isArkade?: boolean;
+  arkadeAddress?: string;
+  amount?: number; // For Arkade, we need to pass amount separately
+};
 
 // TODO: this is way to complicated, it needs to be broken into multiple parts / hooks
 
@@ -118,6 +127,76 @@ export async function getPayRequestForPubkey(
   return { invoice, pubkey };
 }
 
+/**
+ * Create an Arkade pay request (similar to Lightning but uses Arkade address)
+ * Arkade addresses don't encode the amount, so we need to pass it separately via NWC
+ *
+ * @param pubkey pubkey to be zapped
+ * @param event event to be zapped
+ * @param amount amount in msats
+ * @param comment zap comment
+ * @param additionalRelays extra relays to set the zap to
+ * @returns PayRequest with Arkade address and amount
+ */
+export async function getArkadePayRequestForPubkey(
+  pubkey: string,
+  event: NostrEvent | undefined,
+  amount: number,
+  comment?: string,
+  additionalRelays?: Iterable<string>,
+): Promise<PayRequest> {
+  const metadata = await firstValueFrom(eventStore.profile(pubkey));
+  if (!metadata) throw new Error("Can't find user metadata");
+
+  const arkadeAddress = getArkadeAddressFromProfile(metadata);
+  if (!arkadeAddress) throw new Error("User missing Arkade address");
+
+  const account = accounts.active;
+  if (!account) throw new Error("No Account");
+
+  const mailboxes = eventStore.getReplaceable(kinds.RelayList, pubkey);
+  const userInbox = mailboxes ? getInboxes(mailboxes).slice(0, 4) : [];
+  const eventRelays = event ? getEventRelayHints(event, 2) : [];
+  const accountMailboxes = account ? eventStore.getReplaceable(kinds.RelayList, account?.pubkey) : undefined;
+  const outbox = relayScoreboardService
+    .getRankedRelays(accountMailboxes ? getOutboxes(accountMailboxes) : [])
+    .slice(0, 2);
+  const additional = additionalRelays ? relayScoreboardService.getRankedRelays(additionalRelays) : [];
+
+  // Create zap request (same format as Lightning)
+  const zapRequest: EventTemplate = {
+    kind: kinds.ZapRequest,
+    created_at: dayjs().unix(),
+    content: comment ?? "",
+    tags: [
+      ["p", pubkey],
+      ["relays", ...mergeRelaySets(userInbox, eventRelays, outbox, additional)],
+      ["amount", String(amount)],
+    ],
+  };
+
+  // Attach "e" or "a" tag
+  if (event) {
+    if (isReplaceable(event.kind) && event.tags.some(isDTag)) {
+      zapRequest.tags.push(["a", getReplaceableAddress(event)]);
+    } else zapRequest.tags.push(["e", event.id]);
+  }
+
+  // Sign the zap request
+  const signed = await account.signEvent(zapRequest);
+
+  // For Arkade, we return the address and amount separately
+  // The payment will be handled via NWC with pay_invoice(arkadeAddress, amount)
+  return {
+    pubkey,
+    isArkade: true,
+    arkadeAddress,
+    amount,
+    // Store the signed zap request in invoice field for now (can be used for validation)
+    invoice: JSON.stringify(signed),
+  };
+}
+
 async function getPayRequestsForEvent(
   event: NostrEvent,
   amount: number,
@@ -182,19 +261,38 @@ export default function ZapModal({
           allowComment={allowComment}
           onSubmit={async (values) => {
             const amountInMSats = values.amount * 1000;
+            console.log("Zap submit - paymentType:", values.paymentType); // DEBUG
+
             if (event) {
-              setCallbacks(
-                await getPayRequestsForEvent(event, amountInMSats, values.comment, pubkey, additionalRelays),
-              );
+              // For events, check if Arkade is selected and no splits
+              if (values.paymentType === "arkade") {
+                // Arkade zap for event (no splits support yet)
+                const callback = await getArkadePayRequestForPubkey(
+                  pubkey,
+                  event,
+                  amountInMSats,
+                  values.comment,
+                  additionalRelays,
+                );
+                setCallbacks([callback]);
+              } else {
+                // Lightning zap with splits support
+                setCallbacks(
+                  await getPayRequestsForEvent(event, amountInMSats, values.comment, pubkey, additionalRelays),
+                );
+              }
             } else {
-              const callback = await getPayRequestForPubkey(
-                pubkey,
-                event,
-                amountInMSats,
-                values.comment,
-                additionalRelays,
-              );
-              setCallbacks([callback]);
+              // Choose payment method based on user selection
+              try {
+                const callback =
+                  values.paymentType === "arkade"
+                    ? await getArkadePayRequestForPubkey(pubkey, event, amountInMSats, values.comment, additionalRelays)
+                    : await getPayRequestForPubkey(pubkey, event, amountInMSats, values.comment, additionalRelays);
+                setCallbacks([callback]);
+              } catch (error) {
+                console.error("Error creating payment request:", error);
+                throw error;
+              }
             }
           }}
         />

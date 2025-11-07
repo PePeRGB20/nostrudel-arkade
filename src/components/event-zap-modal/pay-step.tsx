@@ -72,6 +72,111 @@ function PayRequestCard({ pubkey, invoice, onPaid }: { pubkey: string; invoice: 
     </Flex>
   );
 }
+
+function ArkadePayRequestCard({
+  pubkey,
+  arkadeAddress,
+  amount,
+  onPaid,
+}: {
+  pubkey: string;
+  arkadeAddress: string;
+  amount: number;
+  onPaid: () => void;
+}) {
+  const toast = useToast();
+  const showMore = useDisclosure({ defaultIsOpen: !window.webln });
+
+  const payWithWebLn = async () => {
+    try {
+      if (window.webln && arkadeAddress) {
+        if (!window.webln.enabled) await window.webln.enable();
+
+        // For Arkade, we need to pass the amount separately
+        // The Arkade address doesn't encode the amount like BOLT11 does
+        const weblnExtended = window.webln as any;
+
+        // Try multiple methods to send Arkade payment with amount
+        try {
+          // Method 1: Try sendPayment with amount as second parameter
+          const result = await weblnExtended.sendPayment(arkadeAddress, amount);
+          toast({
+            description: "Arkade zap sent successfully!",
+            status: "success",
+          });
+          onPaid();
+        } catch (error1: any) {
+          try {
+            // Method 2: Try sendPayment with options object
+            const result2 = await weblnExtended.sendPayment(arkadeAddress, { amount: amount });
+            toast({
+              description: "Arkade zap sent successfully!",
+              status: "success",
+            });
+            onPaid();
+          } catch (error2: any) {
+            // Method 3: Try to access NWC client directly
+            if (weblnExtended.nwcClient || weblnExtended.client) {
+              const nwcClient = weblnExtended.nwcClient || weblnExtended.client;
+              const nwcResult = await nwcClient.payInvoice({
+                invoice: arkadeAddress,
+                amount: amount,
+              });
+              toast({
+                description: "Arkade zap sent via NWC!",
+                status: "success",
+              });
+              onPaid();
+            } else {
+              throw error2;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        toast({
+          description: `Payment failed: ${e.message}`,
+          status: "error",
+          duration: 5000,
+        });
+      }
+    }
+  };
+
+  return (
+    <Flex direction="column" gap="2">
+      <UserCard pubkey={pubkey}>
+        <ButtonGroup size="sm">
+          {!!window.webln && (
+            <Button
+              variant="outline"
+              colorScheme="purple"
+              size="sm"
+              leftIcon={<LightningIcon />}
+              isDisabled={!window.webln}
+              onClick={payWithWebLn}
+            >
+              Pay Arkade
+            </Button>
+          )}
+          <IconButton
+            icon={showMore.isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+            aria-label="More Options"
+            onClick={showMore.onToggle}
+          />
+        </ButtonGroup>
+      </UserCard>
+      {showMore.isOpen && (
+        <Alert status="info">
+          Arkade Address: {arkadeAddress.slice(0, 20)}...
+          <br />
+          Amount: {amount / 1000} sats
+        </Alert>
+      )}
+    </Flex>
+  );
+}
 function ErrorCard({ pubkey, error }: { pubkey: string; error: any }) {
   const showMore = useDisclosure();
 
@@ -102,11 +207,23 @@ export default function PayStep({
     setPayingAll(true);
     if (!window.webln.enabled) await window.webln.enable();
 
-    for (const { invoice, pubkey } of callbacks) {
+    for (const callback of callbacks) {
       try {
-        if (invoice && !paid.includes(pubkey)) {
-          await window.webln.sendPayment(invoice);
-          setPaid((a) => a.concat(pubkey));
+        if (!paid.includes(callback.pubkey)) {
+          if (callback.isArkade && callback.arkadeAddress && callback.amount) {
+            // Pay Arkade
+            const weblnExtended = window.webln as any;
+            if (weblnExtended.sendPayment.length > 1) {
+              await weblnExtended.sendPayment(callback.arkadeAddress, { amount: callback.amount });
+            } else {
+              await window.webln.sendPayment(callback.arkadeAddress);
+            }
+            setPaid((a) => a.concat(callback.pubkey));
+          } else if (callback.invoice) {
+            // Pay Lightning
+            await window.webln.sendPayment(callback.invoice);
+            setPaid((a) => a.concat(callback.pubkey));
+          }
         }
       } catch (e) {}
     }
@@ -114,9 +231,9 @@ export default function PayStep({
   };
 
   useEffect(() => {
-    const withInvoice = callbacks.filter((p) => !!p.invoice);
-    const hasUnpaid = withInvoice.some(({ pubkey }) => !paid.includes(pubkey));
-    if (withInvoice.length > 0 && !hasUnpaid) {
+    const withPayment = callbacks.filter((p) => !!p.invoice || (p.isArkade && !!p.arkadeAddress));
+    const hasUnpaid = withPayment.some(({ pubkey }) => !paid.includes(pubkey));
+    if (withPayment.length > 0 && !hasUnpaid) {
       onComplete();
     }
   }, [paid]);
@@ -130,7 +247,9 @@ export default function PayStep({
 
   return (
     <Flex direction="column" gap="4" {...props}>
-      {callbacks.map(({ pubkey, invoice, error }) => {
+      {callbacks.map((callback) => {
+        const { pubkey, invoice, error, isArkade, arkadeAddress, amount } = callback;
+
         if (paid.includes(pubkey))
           return (
             <UserCard key={pubkey} pubkey={pubkey}>
@@ -140,7 +259,22 @@ export default function PayStep({
             </UserCard>
           );
         if (error) return <ErrorCard key={pubkey} pubkey={pubkey} error={error} />;
-        if (invoice)
+
+        // Render Arkade payment card
+        if (isArkade && arkadeAddress && amount) {
+          return (
+            <ArkadePayRequestCard
+              key={pubkey}
+              pubkey={pubkey}
+              arkadeAddress={arkadeAddress}
+              amount={amount}
+              onPaid={() => setPaid((a) => a.concat(pubkey))}
+            />
+          );
+        }
+
+        // Render Lightning payment card
+        if (invoice) {
           return (
             <PayRequestCard
               key={pubkey}
@@ -149,6 +283,8 @@ export default function PayStep({
               onPaid={() => setPaid((a) => a.concat(pubkey))}
             />
           );
+        }
+
         return null;
       })}
       {!!window.webln && (

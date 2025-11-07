@@ -1,12 +1,12 @@
 {
-  "name": "nostrudel",
-  "version": "0.46.1",
+  "name": "nostrudel-arkade",
+  "version": "0.46.1-arkade",
   "private": true,
   "type": "module",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hzrd149/nostrudel"
+    "url": "https://github.com/YOUR-USERNAME/nostrudel-arkade"
   },
   "scripts": {
     "start": "vite serve",
@@ -70,6 +70,7 @@
     "dayjs": "^1.11.18",
     "debug": "^4.4.3",
     "easymde": "^2.20.0",
+    "emoji-mart": "^5.6.0",
     "emoji-regex": "^10.6.0",
     "eventemitter3": "^5.0.1",
     "file-saver": "^2.0.5",

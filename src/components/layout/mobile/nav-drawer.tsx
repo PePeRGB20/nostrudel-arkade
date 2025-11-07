@@ -1,6 +1,7 @@
 import { MouseEventHandler } from "react";
 import {
   Avatar,
+  Badge,
   ButtonGroup,
   Drawer,
   DrawerBody,
@@ -47,10 +48,15 @@ export default function NavDrawer({ onClose, ...props }: Omit<DrawerProps, "chil
           >
             {!account && (
               <Flex gap="2" alignItems="center">
-                <Avatar src="/apple-touch-icon.png" size="md" aria-label="Nostrudel logo" />
-                <Text as="h1" m={0} fontSize="xl">
-                  Nostrudel
-                </Text>
+                <Avatar src="/apple-touch-icon.png" size="md" aria-label="Nostrudel Arkade logo" />
+                <Flex direction="column" gap="1">
+                  <Text as="h1" m={0} fontSize="xl">
+                    Nostrudel <Text as="span" color="purple.400" fontWeight="bold">Arkade</Text>
+                  </Text>
+                  <Badge colorScheme="purple" fontSize="xs" width="fit-content">
+                    ⚡ Lightning & Arkade Zaps
+                  </Badge>
+                </Flex>
               </Flex>
             )}
             <AccountSwitcher />

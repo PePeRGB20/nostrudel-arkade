@@ -57,12 +57,12 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 1024 * 1024 * 8,
       },
       manifest: {
-        name: "noStrudel",
-        short_name: "noStrudel",
-        description: "A sandbox for exploring nostr",
+        name: "Nostrudel Arkade",
+        short_name: "Nostrudel Arkade",
+        description: "A nostr client with Arkade Zaps support",
         display: "standalone",
         orientation: "portrait-primary",
-        theme_color: "#8DB600",
+        theme_color: "#8B00D6",
         categories: ["social"],
         icons: [
           { src: "/favicon.ico", type: "image/x-icon", sizes: "16x16 32x32" },
