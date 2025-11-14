@@ -211,14 +211,37 @@ export default function PayStep({
       try {
         if (!paid.includes(callback.pubkey)) {
           if (callback.isArkade && callback.arkadeAddress && callback.amount) {
-            // Pay Arkade
+            // Pay Arkade with fallback methods
             const weblnExtended = window.webln as any;
-            if (weblnExtended.sendPayment.length > 1) {
-              await weblnExtended.sendPayment(callback.arkadeAddress, { amount: callback.amount });
-            } else {
-              await window.webln.sendPayment(callback.arkadeAddress);
+            let success = false;
+
+            try {
+              // Method 1: Try sendPayment with amount as second parameter
+              await weblnExtended.sendPayment(callback.arkadeAddress, callback.amount);
+              success = true;
+            } catch (error1: any) {
+              try {
+                // Method 2: Try sendPayment with options object
+                await weblnExtended.sendPayment(callback.arkadeAddress, { amount: callback.amount });
+                success = true;
+              } catch (error2: any) {
+                // Method 3: Try to access NWC client directly
+                if (weblnExtended.nwcClient || weblnExtended.client) {
+                  const nwcClient = weblnExtended.nwcClient || weblnExtended.client;
+                  await nwcClient.payInvoice({
+                    invoice: callback.arkadeAddress,
+                    amount: callback.amount,
+                  });
+                  success = true;
+                } else {
+                  throw error2;
+                }
+              }
             }
-            setPaid((a) => a.concat(callback.pubkey));
+
+            if (success) {
+              setPaid((a) => a.concat(callback.pubkey));
+            }
           } else if (callback.invoice) {
             // Pay Lightning
             await window.webln.sendPayment(callback.invoice);
